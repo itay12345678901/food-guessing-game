@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secret Food Guessing Game</title>
+    <title>משחק ניחוש אוכל סודי</title>
     <!-- Include Socket.io Client -->
     <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.8.0/dist/socket.io.min.js"></script>
     <style>
@@ -60,7 +60,7 @@
 
         input {
             padding: 14px 18px; width: 100%; border: 1.5px solid var(--border-color);
-            background: #f8fafc; color: var(--text-main);
+            background: #f8fafc; color: var(--text-main); text-align: right;
         }
 
         button {
@@ -75,7 +75,7 @@
             background: #fffbe6; border: 1px solid #ffe066; padding: 18px;
             border-radius: 14px; text-align: center; margin-bottom: 20px;
         }
-        .secret-banner strong { color: #d97706; font-size: 22px; margin-left: 6px; }
+        .secret-banner strong { color: #d97706; font-size: 22px; margin-right: 6px; }
 
         .status-wrapper { text-align: center; margin-bottom: 16px; }
         #turn-indicator {
@@ -86,71 +86,73 @@
         #chat-box {
             height: 300px; border: 1px solid var(--border-color); border-radius: 14px;
             overflow-y: auto; padding: 16px; background: #f8fafc; margin-bottom: 16px;
-            display: flex; flex-direction: column; gap: 12px;
+            display: flex; flex-direction: column; gap: 12px; text-align: right;
         }
 
         .message { padding: 12px 16px; border-radius: 16px; max-width: 80%; word-break: break-word; font-size: 14px; }
-        .message.system { background: #e2e8f0; color: var(--text-muted); align-self: center; font-size: 12px; }
-        .message.self { background: var(--self-msg); color: white; align-self: flex-end; }
-        .message.peer { background: var(--peer-msg); color: var(--text-main); align-self: flex-start; border: 1px solid var(--border-color); }
+        .message.system { background: #e2e8f0; color: var(--text-muted); align-self: center; font-size: 12px; text-align: center; }
+        .message.self { background: var(--self-msg); color: white; align-self: flex-start; }
+        .message.peer { background: var(--peer-msg); color: var(--text-main); align-self: flex-end; border: 1px solid var(--border-color); }
 
         .input-group { display: flex; gap: 10px; }
-        #code-display { font-size: 32px; font-weight: 800; letter-spacing: 6px; color: var(--primary); background: #f1f5f9; padding: 16px; border-radius: 12px; text-align: center; margin: 16px 0; }
+        #code-display { font-size: 32px; font-weight: 800; letter-spacing: 6px; color: var(--primary); background: #f1f5f9; padding: 16px; border-radius: 12px; text-align: center; margin: 16px 0; direction: ltr; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Secret Food</h2>
+    <h2>אוכל סודי</h2>
 
     <div id="lobby-section">
-        <button id="create-btn" onclick="createGame()">Create New Room</button>
-        <div class="divider">OR</div>
+        <button id="create-btn" onclick="createGame()">צור חדר חדש</button>
+        <div class="divider">או</div>
         <div style="display: flex; flex-direction: column; gap: 10px;">
-            <input type="text" id="code-input" placeholder="Enter room code">
-            <button id="join-btn" onclick="joinGame()" style="background: #334155;">Join Game</button>
+            <input type="text" id="code-input" placeholder="הכנס קוד חדר" style="text-align: center;">
+            <button id="join-btn" onclick="joinGame()" style="background: #334155;">הצטרף למשחק</button>
         </div>
     </div>
 
     <div id="waiting-section" class="hidden" style="text-align: center;">
-        <p style="color: var(--text-muted); margin-bottom: 4px;">Share this room code:</p>
+        <p style="color: var(--text-muted); margin-bottom: 4px;">שתף את קוד החדר הזה:</p>
         <div id="code-display"></div>
-        <p style="color: var(--text-muted); font-size: 14px;">Waiting for player 2 to join...</p>
+        <p style="color: var(--text-muted); font-size: 14px;">ממתין לשחקן השני שיצטרף...</p>
     </div>
 
     <div id="game-section" class="hidden">
         <div class="secret-banner">
-            Your Secret: <strong id="my-secret">?</strong>
-            <div style="font-size:13px; color:#b45309; margin-top:4px;">Guide the opponent to guess this food!</div>
+            האוכל הסודי שלך: <strong id="my-secret">?</strong>
+            <div style="font-size:13px; color:#b45309; margin-top:4px;">עזור ליריב לנחש את המאכל הזה!</div>
         </div>
 
         <div class="status-wrapper">
-            <div id="turn-indicator">Connecting...</div>
+            <div id="turn-indicator">מתחבר...</div>
         </div>
 
         <div id="chat-box"></div>
 
         <div class="input-group">
-            <input type="text" id="msg-input" placeholder="Ask a question or make a guess..." onkeypress="checkEnter(event)" disabled>
-            <button id="send-btn" onclick="sendMessage()" style="width: 80px;" disabled>Send</button>
+            <button id="send-btn" onclick="sendMessage()" style="width: 80px;">שלח</button>
+            <input type="text" id="msg-input" placeholder="שאל שאלה או נחש מאכל..." onkeypress="checkEnter(event)" disabled>
         </div>
         
-        <button id="reset-btn" onclick="location.reload()" class="hidden" style="background: var(--accent-green); margin-top: 14px;">Play Again</button>
+        <button id="reset-btn" onclick="location.reload()" class="hidden" style="background: var(--accent-green); margin-top: 14px;">שחק שוב</button>
     </div>
 </div>
 
 <script>
-    const prefixes = ["Super", "Mega", "Cheesy", "Choco", "Crispy", "Sweet", "Spicy", "Garlic", "Honey", "Mini", "Giant", "Smokey", "Berry", "Butter", "Fruity", "Glazed", "Golden", "Truffle", "Toasted", "Salty", "Fresh", "Tangy", "Milky", "Nutty"];
-    const baseFoods = ["burger", "pizza", "taco", "sushi", "apple", "donut", "pancake", "cookie", "noodle", "pasta", "waffle", "muffin", "steak", "pickle", "potato", "pretzel", "brownie", "maki", "bacon", "toast", "bagel", "nacho", "ramen", "cupcake", "tart", "bread", "cheese", "sandwich", "cherry", "mango", "berry", "melon", "biscuit", "crepe", "fondue", "kebab", "omelet", "paella", "pie", "salad"];
+    const foods = [
+        "פלאפל", "חומוס", "שווארמה", "שקשוקה", "בורקס", "טחינה", "קבב", "פרגית", "שניצל", "פתיתים", 
+        "סופגנייה", "אוזן המן", "חלה", "פיתה", "לאפה", "בייגל", "מטבוחה", "כרובית מטוגנת", "מרק עוף", "רוגלך", 
+        "עוגת ביסקוויטים", "קרמבו", "במבה", "ביסלי", "קוטג'", "גבינה לבנה", "גבינה צפתית", "גבינה צהובה", "לבנה", "שוקו בשקית", 
+        "מיץ תפוזים", "תמר", "אבטיח", "תפוח", "בננה", "תות", "ענבים", "אפרסק", "מלפפון", "עגבנייה", 
+        "המבורגר", "צ'יפס", "פיצה", "ספגטי", "סושי", "נקניקייה", "טאקו", "פנקייק", "טוסט", "קרואסון", 
+        "דונאט", "מאפין", "עוגיה", "בראוניז", "קאפקייק", "שוקולד", "גלידה", "עוגת גבינה", "כריך", "צ'יזבורגר", 
+        "לחם שום", "קציצות", "לזניה", "מקרוני וגבינה", "ראמן", "פופקורן", "פרצל", "סטייק", "אבוקדו", "חביתה", 
+        "ביציית עין", "ביצה קשה", "אורז", "פירה", "תפוח אדמה", "תירס", "סלט יווני", "מרק עדשים", "מרק עגבניות", "סנדוויץ' טונה", 
+        "פסטה ברוטב עגבניות", "פסטה שמנת", "נודלס", "טורטייה", "נאגטס", "טבעות בצל", "גלידת וניל", "גלידת שוקולד", "ארטיק", "טילון", 
+        "מילקשייק", "שייק פירות", "לימונדה", "קולה", "מים", "קפה", "תה", "ופל בלגי", "מלאווח", "ג'חנון"
+    ];
 
-    const foods = [];
-    for (let p of prefixes) {
-        for (let b of baseFoods) {
-            foods.push(p + b.charAt(0).toUpperCase() + b.slice(1));
-        }
-    }
-
-    // Connected directly to your live Render backend
     const RENDER_SERVER_URL = "https://food-guessing-game.onrender.com";
     const socket = io(RENDER_SERVER_URL);
 
@@ -177,7 +179,7 @@
 
     function joinGame() {
         const code = document.getElementById('code-input').value.trim().toUpperCase();
-        if (!code) return alert("Enter code");
+        if (!code) return alert("נא להכניס קוד חדר");
         currentRoomCode = code;
 
         socket.emit("join-room", { roomCode: currentRoomCode, secret: mySecretFood });
@@ -193,7 +195,7 @@
 
         updateTurnUI();
         enableChat(isHost);
-        appendSystemMessage(isHost ? "Player 2 joined! Your turn." : "Connected! Host goes first.");
+        appendSystemMessage(isHost ? "שחקן 2 הצטרף! התור שלך." : "התחברת! המארח מתחיל ראשון.");
     });
 
     socket.on("receive-message", ({ text }) => {
@@ -209,7 +211,7 @@
         gameOver = true;
         enableChat(false);
         const indicator = document.getElementById('turn-indicator');
-        indicator.innerHTML = `❌ Opponent guessed "${mySecretFood}"!`;
+        indicator.innerHTML = `❌ היריב ניחש את "${mySecretFood}"!`;
         indicator.style.background = "var(--accent-red-bg)";
         indicator.style.color = "#b91c1c";
         document.getElementById('reset-btn').classList.remove('hidden');
@@ -236,7 +238,7 @@
             gameOver = true;
             socket.emit("game-over", { roomCode: currentRoomCode, text });
             const indicator = document.getElementById('turn-indicator');
-            indicator.innerHTML = `🎉 You Won!`;
+            indicator.innerHTML = `🎉 ניצחת!`;
             indicator.style.background = "var(--accent-green-bg)";
             indicator.style.color = "#047857";
             document.getElementById('reset-btn').classList.remove('hidden');
@@ -267,11 +269,11 @@
         if (gameOver) return;
         const indicator = document.getElementById('turn-indicator');
         if (isMyTurn) {
-            indicator.innerHTML = `Your Turn`;
+            indicator.innerHTML = `התור שלך`;
             indicator.style.background = "var(--accent-green-bg)";
             indicator.style.color = "#047857";
         } else {
-            indicator.innerHTML = `Waiting for Opponent...`;
+            indicator.innerHTML = `ממתין ליריב...`;
             indicator.style.background = "var(--accent-red-bg)";
             indicator.style.color = "#b91c1c";
         }
@@ -285,3 +287,4 @@
 
 </body>
 </html>
+
