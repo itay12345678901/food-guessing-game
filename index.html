@@ -1,360 +1,30 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secret Food Guessing Game</title>
-    <style>
-        :root {
-            --primary: #6366f1;
-            --primary-hover: #4f46e5;
-            --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            --card-bg: #ffffff;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --self-msg: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-            --peer-msg: #f1f5f9;
-            --accent-green: #10b981;
-            --accent-green-bg: #ecfdf5;
-            --accent-red: #ef4444;
-            --accent-red-bg: #fef2f2;
-            --border-color: #e2e8f0;
-            --shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
-            --radius: 16px;
-        }
-
-        * {
-            box-sizing: border-box;
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
-            background: var(--bg-gradient);
-            color: var(--text-main);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 480px;
-            width: 100%;
-            background: var(--card-bg);
-            padding: 32px;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            border: 1px solid rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-        }
-
-        h2 {
-            text-align: center;
-            color: var(--primary);
-            margin: 0 0 24px 0;
-            font-size: 28px;
-            font-weight: 800;
-            letter-spacing: -0.8px;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        .divider {
-            text-align: center;
-            margin: 24px 0;
-            color: var(--text-muted);
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            position: relative;
-        }
-
-        .divider::before, .divider::after {
-            content: "";
-            position: absolute;
-            top: 50%;
-            width: 38%;
-            height: 1px;
-            background-color: var(--border-color);
-        }
-        .divider::before { left: 0; }
-        .divider::after { right: 0; }
-
-        input, button {
-            font-family: inherit;
-            font-size: 15px;
-            border-radius: 12px;
-            outline: none;
-        }
-
-        input {
-            padding: 14px 18px;
-            width: 100%;
-            border: 1.5px solid var(--border-color);
-            background: #f8fafc;
-            color: var(--text-main);
-            font-weight: 500;
-        }
-
-        input:focus {
-            border-color: var(--primary);
-            background: #fff;
-            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
-        }
-
-        button {
-            padding: 14px 22px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            display: inline-flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2);
-        }
-
-        button:hover {
-            background: var(--primary-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px -2px rgba(99, 102, 241, 0.3);
-        }
-
-        button:active {
-            transform: translateY(0);
-        }
-
-        button:disabled {
-            background: #cbd5e1;
-            color: #94a3b8;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .secret-banner {
-            background: linear-gradient(135deg, #fffbe6 0%, #fff3bf 100%);
-            border: 1px solid #ffe066;
-            padding: 18px;
-            border-radius: 14px;
-            text-align: center;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(245, 159, 0, 0.08);
-        }
-
-        .secret-banner strong {
-            color: #d97706;
-            font-size: 22px;
-            font-weight: 800;
-            display: inline-block;
-            margin-left: 6px;
-        }
-
-        .secret-subtext {
-            font-size: 13px;
-            color: #b45309;
-            margin-top: 4px;
-            font-weight: 500;
-        }
-
-        .status-wrapper {
-            text-align: center;
-            margin-bottom: 16px;
-        }
-
-        #turn-indicator {
-            font-weight: 600;
-            font-size: 13px;
-            padding: 8px 18px;
-            border-radius: 30px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            letter-spacing: 0.2px;
-        }
-
-        .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-
-        .my-turn-dot {
-            background-color: var(--accent-green);
-            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
-            animation: pulse 2s infinite;
-        }
-
-        .peer-turn-dot {
-            background-color: var(--accent-red);
-            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2);
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
-
-        #chat-box {
-            height: 300px;
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
-            overflow-y: auto;
-            padding: 16px;
-            background: #f8fafc;
-            margin-bottom: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            scrollbar-width: thin;
-            scrollbar-color: #cbd5e1 transparent;
-        }
-
-        #chat-box::-webkit-scrollbar {
-            width: 6px;
-        }
-        #chat-box::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
-
-        .message {
-            padding: 12px 16px;
-            border-radius: 16px;
-            max-width: 80%;
-            word-break: break-word;
-            font-size: 14px;
-            line-height: 1.5;
-            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(10px) scale(0.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        .message.system {
-            background: #e2e8f0;
-            color: var(--text-muted);
-            align-self: center;
-            font-size: 12px;
-            font-weight: 600;
-            padding: 6px 14px;
-            border-radius: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        }
-
-        .message.self {
-            background: var(--self-msg);
-            color: white;
-            align-self: flex-end;
-            border-bottom-right-radius: 4px;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
-        }
-
-        .message.peer {
-            background: var(--peer-msg);
-            color: var(--text-main);
-            align-self: flex-start;
-            border-bottom-left-radius: 4px;
-            border: 1px solid var(--border-color);
-        }
-
-        .input-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        #code-display {
-            font-size: 32px;
-            font-weight: 800;
-            letter-spacing: 6px;
-            color: var(--primary);
-            background: #f1f5f9;
-            padding: 16px;
-            border-radius: 12px;
-            text-align: center;
-            margin: 16px 0;
-            border: 2px dashed #cbd5e1;
-        }
-
-        .reset-btn {
-            background: var(--accent-green);
-            width: 100%;
-            margin-top: 14px;
-            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
-        }
-
-        .reset-btn:hover {
-            background: #059669;
-            box-shadow: 0 6px 12px -2px rgba(16, 185, 129, 0.3);
-        }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <h2>Secret Food</h2>
-
-    <!-- Lobby Section -->
-    <div id="lobby-section">
-        <div>
-            <button style="width: 100%;" onclick="createGame()">Create New Room</button>
-        </div>
-        <div class="divider">OR</div>
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            <input type="text" id="code-input" placeholder="Enter room code">
-            <button onclick="joinGame()" style="background: #334155; box-shadow: 0 4px 6px -1px rgba(51, 65, 85, 0.2);">Join Game</button>
-        </div>
-    </div>
-
-    <!-- Waiting Section -->
-    <div id="waiting-section" class="hidden" style="text-align: center;">
-        <p style="color: var(--text-muted); margin-bottom: 4px; font-weight: 500;">Share this room code:</p>
-        <div id="code-display"></div>
-        <p style="color: var(--text-muted); font-size: 14px;">Waiting for player 2 to join...</p>
-    </div>
-
-    <!-- Game Section -->
-    <div id="game-section" class="hidden">
-        <div class="secret-banner">
-            Your Secret: <strong id="my-secret">?</strong>
-            <div class="secret-subtext">Guide the opponent to guess this food!</div>
-        </div>
-
-        <div class="status-wrapper">
-            <div id="turn-indicator">Connecting...</div>
-        </div>
-
-        <div id="chat-box"></div>
-
-        <div class="input-group">
-            <input type="text" id="msg-input" placeholder="Ask a question or make a guess..." onkeypress="checkEnter(event)" disabled>
-            <button id="send-btn" onclick="sendMessage()" disabled>Send</button>
-        </div>
-        
-        <button id="reset-btn" onclick="resetGame()" class="reset-btn hidden">Play Again</button>
-    </div>
-</div>
+<!-- Include Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-    // Generates 1,000 distinct single-word foods (e.g., Hamburger, Cheesyburger, Superpizza, Chocoapple)
-    const prefixes = ["Super", "Mega", "Cheesy", "Choco", "Crispy", "Sweet", "Spicy", "Garlic", "Honey", "Mini", "Giant", "Smokey", "Berry", "Berry", "Butter", "Fruity", "Glazed", "Golden", "Truffle", "Toasted", "Salty", "Fresh", "Tangy", "Milky", "Nutty"];
+    // 1. Paste your Firebase config here from https://console.firebase.google.com/
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+        databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_PROJECT_ID.appspot.com",
+        messagingSenderId: "YOUR_SENDER_ID",
+        appId: "YOUR_APP_ID"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Food list setup
+    const prefixes = ["Super", "Mega", "Cheesy", "Choco", "Crispy", "Sweet", "Spicy", "Garlic", "Honey", "Mini", "Giant", "Smokey", "Berry", "Butter", "Fruity", "Glazed", "Golden", "Truffle", "Toasted", "Salty", "Fresh", "Tangy", "Milky", "Nutty"];
     const baseFoods = ["burger", "pizza", "taco", "sushi", "apple", "donut", "pancake", "cookie", "noodle", "pasta", "waffle", "muffin", "steak", "pickle", "potato", "pretzel", "brownie", "maki", "bacon", "toast", "bagel", "nacho", "ramen", "cupcake", "tart", "bread", "cheese", "sandwich", "cherry", "mango", "berry", "melon", "biscuit", "crepe", "fondue", "kebab", "omelet", "paella", "pie", "salad"];
 
     const foods = [];
     for (let p of prefixes) {
         for (let b of baseFoods) {
-            // Capitalize first letter of single-word combination
             const word = p + b;
             foods.push(word.charAt(0).toUpperCase() + word.slice(1));
         }
@@ -365,9 +35,8 @@
     let mySecretFood = "";
     let opponentSecretFood = "";
     let isMyTurn = false;
-    let gameStarted = false;
     let gameOver = false;
-    let storageChannel = null;
+    let roomRef = null;
 
     function generateCode() {
         return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -376,95 +45,111 @@
     function createGame() {
         roomCode = generateCode();
         isCreator = true;
-        initWebSocket(() => {
-            document.getElementById('lobby-section').classList.add('hidden');
-            document.getElementById('waiting-section').classList.remove('hidden');
-            document.getElementById('code-display').innerText = roomCode;
-            sendData({ type: 'join-room', code: roomCode });
-        });
+        initRoom();
     }
 
     function joinGame() {
         const input = document.getElementById('code-input').value.trim().toUpperCase();
-        if (!input) return alert("Please enter a valid code.");
+        if (!input) return alert("Please enter a room code.");
         roomCode = input;
         isCreator = false;
-        initWebSocket(() => {
+        initRoom();
+    }
+
+    function initRoom() {
+        roomRef = db.ref('rooms/' + roomCode);
+
+        if (isCreator) {
+            mySecretFood = foods[Math.floor(Math.random() * foods.length)];
+            document.getElementById('my-secret').innerText = mySecretFood;
+            
+            roomRef.set({
+                creatorSecret: mySecretFood,
+                status: 'waiting',
+                turn: 'creator'
+            });
+
             document.getElementById('lobby-section').classList.add('hidden');
-            document.getElementById('game-section').classList.remove('hidden');
-            sendData({ type: 'join-room', code: roomCode });
-            assignSecret();
+            document.getElementById('waiting-section').classList.remove('hidden');
+            document.getElementById('code-display').innerText = roomCode;
+        } else {
+            roomRef.once('value', (snapshot) => {
+                if (!snapshot.exists()) {
+                    alert("Room not found!");
+                    return;
+                }
+                
+                mySecretFood = foods[Math.floor(Math.random() * foods.length)];
+                document.getElementById('my-secret').innerText = mySecretFood;
+
+                roomRef.update({
+                    joinerSecret: mySecretFood,
+                    status: 'playing'
+                });
+
+                document.getElementById('lobby-section').classList.add('hidden');
+                document.getElementById('game-section').classList.remove('hidden');
+            });
+        }
+
+        listenToRoom();
+    }
+
+    function listenToRoom() {
+        // Listen to game state changes
+        roomRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+
+            // When second player joins
+            if (data.status === 'playing' && isCreator && gameSectionHidden()) {
+                document.getElementById('waiting-section').classList.add('hidden');
+                document.getElementById('game-section').classList.remove('hidden');
+                appendSystemMessage("Player 2 connected! Game started.");
+            }
+
+            // Store opponent secret
+            opponentSecretFood = isCreator ? data.joinerSecret : data.creatorSecret;
+
+            // Turn updates
+            if (data.status === 'playing') {
+                isMyTurn = (data.turn === (isCreator ? 'creator' : 'joiner'));
+                updateTurnUI();
+                enableChat(isMyTurn);
+            }
+
+            // Game over handling
+            if (data.status === 'ended') {
+                gameOver = true;
+                enableChat(false);
+                const indicator = document.getElementById('turn-indicator');
+                const won = data.winner === (isCreator ? 'creator' : 'joiner');
+                
+                if (won) {
+                    indicator.innerHTML = `<span class="dot my-turn-dot"></span> 🎉 You Won!`;
+                    indicator.style.background = "var(--accent-green-bg)";
+                    indicator.style.color = "#047857";
+                } else {
+                    indicator.innerHTML = `<span class="dot peer-turn-dot"></span> ❌ Opponent guessed "${mySecretFood}"!`;
+                    indicator.style.background = "var(--accent-red-bg)";
+                    indicator.style.color = "#b91c1c";
+                }
+                document.getElementById('reset-btn').classList.remove('hidden');
+            }
+        });
+
+        // Listen for incoming chat messages
+        roomRef.child('messages').on('child_added', (snapshot) => {
+            const msg = snapshot.val();
+            const senderRole = isCreator ? 'creator' : 'joiner';
+            if (msg.sender !== senderRole) {
+                appendMessage(msg.text, 'peer');
+            }
         });
     }
 
-    function initWebSocket(cb) {
-        storageChannel = new BroadcastChannel('food_game_' + roomCode);
-        storageChannel.onmessage = (event) => {
-            handleIncomingData(event.data);
-        };
-        cb();
-    }
-
-    function sendData(data) {
-        if (storageChannel) storageChannel.postMessage(data);
-    }
-
-    function assignSecret() {
-        mySecretFood = foods[Math.floor(Math.random() * foods.length)];
-        document.getElementById('my-secret').innerText = mySecretFood;
-        sendData({ type: 'start-game', secretFood: mySecretFood });
-    }
-
-    function checkWinner(text, targetFood) {
-        const cleanText = text.toLowerCase().replace(/[^a-z0-9 ]/g, '');
-        const cleanTarget = targetFood.toLowerCase();
-        return cleanText.includes(cleanTarget);
-    }
-
-    function handleIncomingData(data) {
-        if (data.type === 'join-room' && isCreator && !gameStarted) {
-            document.getElementById('waiting-section').classList.add('hidden');
-            document.getElementById('game-section').classList.remove('hidden');
-            assignSecret();
-        } else if (data.type === 'start-game') {
-            opponentSecretFood = data.secretFood;
-            if (!mySecretFood) {
-                mySecretFood = foods[Math.floor(Math.random() * foods.length)];
-                document.getElementById('my-secret').innerText = mySecretFood;
-                sendData({ type: 'exchange-secret', secretFood: mySecretFood });
-            }
-            gameStarted = true;
-            gameOver = false;
-            isMyTurn = isCreator;
-            updateTurnUI();
-            appendSystemMessage("Game started! Ask questions in turns.");
-            enableChat(isMyTurn);
-        } else if (data.type === 'exchange-secret') {
-            opponentSecretFood = data.secretFood;
-        } else if (data.type === 'chat') {
-            appendMessage(data.msg, 'peer');
-            if (!gameOver) {
-                isMyTurn = true;
-                updateTurnUI();
-                enableChat(true);
-            }
-        } else if (data.type === 'game-over') {
-            gameOver = true;
-            enableChat(false);
-            const indicator = document.getElementById('turn-indicator');
-            if (data.winner === (isCreator ? 'creator' : 'joiner')) {
-                indicator.innerHTML = `<span class="dot my-turn-dot"></span> 🎉 Game Over - You Won!`;
-                indicator.style.background = "var(--accent-green-bg)";
-                indicator.style.color = "#047857";
-            } else {
-                indicator.innerHTML = `<span class="dot peer-turn-dot"></span> ❌ Game Over - Opponent guessed "${mySecretFood}"!`;
-                indicator.style.background = "var(--accent-red-bg)";
-                indicator.style.color = "#b91c1c";
-            }
-            document.getElementById('reset-btn').classList.remove('hidden');
-        } else if (data.type === 'reset-game') {
-            location.reload();
-        }
+    function gameSectionHidden() {
+        return document.getElementById('game-section').classList.contains('hidden');
     }
 
     function sendMessage() {
@@ -472,18 +157,26 @@
         const text = input.value.trim();
         if (!text || !isMyTurn || gameOver) return;
 
-        appendMessage(text, 'self');
-        sendData({ type: 'chat', msg: text });
-        
-        input.value = "";
-        isMyTurn = false;
-        updateTurnUI();
-        enableChat(false);
+        const role = isCreator ? 'creator' : 'joiner';
+        const nextTurn = isCreator ? 'joiner' : 'creator';
 
-        if (opponentSecretFood && checkWinner(text, opponentSecretFood)) {
-            const role = isCreator ? 'creator' : 'joiner';
-            sendData({ type: 'game-over', winner: role });
-            handleIncomingData({ type: 'game-over', winner: role });
+        // Add message to Firebase
+        roomRef.child('messages').push({
+            sender: role,
+            text: text
+        });
+
+        appendMessage(text, 'self');
+        input.value = "";
+
+        // Check for win
+        if (opponentSecretFood && text.toLowerCase().includes(opponentSecretFood.toLowerCase())) {
+            roomRef.update({
+                status: 'ended',
+                winner: role
+            });
+        } else {
+            roomRef.update({ turn: nextTurn });
         }
     }
 
@@ -513,7 +206,7 @@
         if (gameOver) return;
         const indicator = document.getElementById('turn-indicator');
         if (isMyTurn) {
-            indicator.innerHTML = `<span class="dot my-turn-dot"></span> Your Turn to Ask or Answer`;
+            indicator.innerHTML = `<span class="dot my-turn-dot"></span> Your Turn`;
             indicator.style.background = "var(--accent-green-bg)";
             indicator.style.color = "#047857";
         } else {
@@ -529,10 +222,7 @@
     }
 
     function resetGame() {
-        sendData({ type: 'reset-game' });
+        if (roomRef) roomRef.remove();
         location.reload();
     }
 </script>
-
-</body>
-</html>
