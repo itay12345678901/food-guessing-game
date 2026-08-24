@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Secret Food Guessing Game</title>
-    <!-- Include Ably CDN -->
-    <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
+    <!-- Include Socket.io Client -->
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.8.0/dist/socket.io.min.js"></script>
     <style>
         :root {
             --primary: #6366f1;
@@ -150,94 +150,74 @@
         }
     }
 
-    // Free sandbox public demo key for reliable WebSocket connections
-    const ABLY_API_KEY = "Iws43w.aQ0a4g:f1-O-5SjC1yL3U3R_5D8w3e0s9z8x7c6v5b4n3m2l1k0";
-    let ably, channel;
-    let myClientId = Math.random().toString(36).substring(2, 9);
+    // Connected directly to your live Render backend
+    const RENDER_SERVER_URL = "https://food-guessing-game.onrender.com";
+    const socket = io(RENDER_SERVER_URL);
+
+    let currentRoomCode = "";
     let mySecretFood = foods[Math.floor(Math.random() * foods.length)];
     let opponentSecretFood = "";
     let isMyTurn = false;
     let gameOver = false;
 
+    document.getElementById('my-secret').innerText = mySecretFood;
+
     function generateCode() {
         return Math.random().toString(36).substring(2, 6).toUpperCase();
     }
 
-    function initAbly(roomCode, isHost) {
-        // Initialize Ably client
-        ably = new Ably.Realtime({ key: 'p9Y7gA.kS8A7g:G39s_D9e0s9z8x7c6v5b4n3m2l1k0-demo', clientId: myClientId });
-        channel = ably.channels.get('room-' + roomCode);
-
-        document.getElementById('my-secret').innerText = mySecretFood;
-
-        channel.subscribe('msg', (message) => {
-            const data = message.data;
-
-            // Ignore messages sent by self
-            if (data.senderId === myClientId) return;
-
-            if (data.type === 'join-signal') {
-                if (isHost) {
-                    opponentSecretFood = data.secret;
-                    // Send host info back
-                    channel.publish('msg', { type: 'host-signal', secret: mySecretFood, senderId: myClientId });
-                    startGame(true);
-                }
-            } else if (data.type === 'host-signal') {
-                if (!isHost) {
-                    opponentSecretFood = data.secret;
-                    startGame(false);
-                }
-            } else if (data.type === 'chat') {
-                appendMessage(data.text, 'peer');
-                if (!gameOver) {
-                    isMyTurn = true;
-                    updateTurnUI();
-                    enableChat(true);
-                }
-            } else if (data.type === 'game-over') {
-                gameOver = true;
-                enableChat(false);
-                const indicator = document.getElementById('turn-indicator');
-                indicator.innerHTML = `❌ Opponent guessed "${mySecretFood}"!`;
-                indicator.style.background = "var(--accent-red-bg)";
-                indicator.style.color = "#b91c1c";
-                document.getElementById('reset-btn').classList.remove('hidden');
-            }
-        });
-
-        if (!isHost) {
-            // Joiner signals presence
-            setTimeout(() => {
-                channel.publish('msg', { type: 'join-signal', secret: mySecretFood, senderId: myClientId });
-            }, 500);
-        }
-    }
-
     function createGame() {
-        const code = generateCode();
+        currentRoomCode = generateCode();
         document.getElementById('lobby-section').classList.add('hidden');
         document.getElementById('waiting-section').classList.remove('hidden');
-        document.getElementById('code-display').innerText = code;
-        initAbly(code, true);
+        document.getElementById('code-display').innerText = currentRoomCode;
+
+        socket.emit("create-room", { roomCode: currentRoomCode, secret: mySecretFood });
     }
 
     function joinGame() {
         const code = document.getElementById('code-input').value.trim().toUpperCase();
         if (!code) return alert("Enter code");
-        document.getElementById('lobby-section').classList.add('hidden');
-        document.getElementById('game-section').classList.remove('hidden');
-        initAbly(code, false);
+        currentRoomCode = code;
+
+        socket.emit("join-room", { roomCode: currentRoomCode, secret: mySecretFood });
     }
 
-    function startGame(hostTurn) {
+    socket.on("game-start", ({ opponentSecret, isHost }) => {
+        opponentSecretFood = opponentSecret;
+        isMyTurn = isHost;
+
         document.getElementById('waiting-section').classList.add('hidden');
+        document.getElementById('lobby-section').classList.add('hidden');
         document.getElementById('game-section').classList.remove('hidden');
-        isMyTurn = hostTurn;
+
         updateTurnUI();
-        enableChat(hostTurn);
-        appendSystemMessage(hostTurn ? "Player 2 joined! Your turn." : "Connected! Host goes first.");
-    }
+        enableChat(isHost);
+        appendSystemMessage(isHost ? "Player 2 joined! Your turn." : "Connected! Host goes first.");
+    });
+
+    socket.on("receive-message", ({ text }) => {
+        appendMessage(text, 'peer');
+        if (!gameOver) {
+            isMyTurn = true;
+            updateTurnUI();
+            enableChat(true);
+        }
+    });
+
+    socket.on("peer-won", ({ text }) => {
+        gameOver = true;
+        enableChat(false);
+        const indicator = document.getElementById('turn-indicator');
+        indicator.innerHTML = `❌ Opponent guessed "${mySecretFood}"!`;
+        indicator.style.background = "var(--accent-red-bg)";
+        indicator.style.color = "#b91c1c";
+        document.getElementById('reset-btn').classList.remove('hidden');
+    });
+
+    socket.on("error-msg", (msg) => {
+        alert(msg);
+    });
 
     function sendMessage() {
         const input = document.getElementById('msg-input');
@@ -245,7 +225,7 @@
         if (!text || !isMyTurn || gameOver) return;
 
         appendMessage(text, 'self');
-        channel.publish('msg', { type: 'chat', text: text, senderId: myClientId });
+        socket.emit("send-message", { roomCode: currentRoomCode, text });
 
         input.value = "";
         isMyTurn = false;
@@ -254,7 +234,7 @@
 
         if (opponentSecretFood && text.toLowerCase().includes(opponentSecretFood.toLowerCase())) {
             gameOver = true;
-            channel.publish('msg', { type: 'game-over', senderId: myClientId });
+            socket.emit("game-over", { roomCode: currentRoomCode, text });
             const indicator = document.getElementById('turn-indicator');
             indicator.innerHTML = `🎉 You Won!`;
             indicator.style.background = "var(--accent-green-bg)";
