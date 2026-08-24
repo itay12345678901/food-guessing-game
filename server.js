@@ -1,33 +1,37 @@
-const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
+
+// Enable CORS so outside networks can connect
 const io = new Server(server, {
-  cors: { origin: "*" }
+  cors: {
+    origin: "*", 
+    methods: ["GET", "POST"]
+  }
 });
 
 const rooms = {};
 
 io.on("connection", (socket) => {
   socket.on("create-room", ({ roomCode, secret }) => {
+    rooms[roomCode] = { host: socket.id, hostSecret: secret };
     socket.join(roomCode);
-    rooms[roomCode] = { hostId: socket.id, hostSecret: secret };
   });
 
   socket.on("join-room", ({ roomCode, secret }) => {
     const room = rooms[roomCode];
     if (room) {
+      room.guest = socket.id;
+      room.guestSecret = secret;
       socket.join(roomCode);
-      room.joinerId = socket.id;
-      room.joinerSecret = secret;
 
-      // Exchange secrets securely between host and joiner
-      io.to(room.hostId).emit("game-start", { opponentSecret: secret, isHost: true });
-      io.to(socket.id).emit("game-start", { opponentSecret: room.hostSecret, isHost: false });
+      io.to(room.host).emit("game-start", { opponentSecret: room.guestSecret, isHost: true });
+      io.to(room.guest).emit("game-start", { opponentSecret: room.hostSecret, isHost: false });
     } else {
-      socket.emit("error-msg", "Room not found!");
+      socket.emit("error-msg", "חדר לא נמצא");
     }
   });
 
@@ -41,4 +45,4 @@ io.on("connection", (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, ()args => console.log(`Server running on port ${PORT}`));
