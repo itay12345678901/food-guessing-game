@@ -310,12 +310,12 @@
     <!-- Lobby Section -->
     <div id="lobby-section">
         <div>
-            <button style="width: 100%;" onclick="createGame()">Create New Room</button>
+            <button id="create-btn" style="width: 100%;" onclick="createGame()">Create New Room</button>
         </div>
         <div class="divider">OR</div>
         <div style="display: flex; flex-direction: column; gap: 10px;">
             <input type="text" id="code-input" placeholder="Enter room code">
-            <button onclick="joinGame()" style="background: #334155; box-shadow: 0 4px 6px -1px rgba(51, 65, 85, 0.2);">Join Game</button>
+            <button id="join-btn" onclick="joinGame()" style="background: #334155; box-shadow: 0 4px 6px -1px rgba(51, 65, 85, 0.2);">Join Game</button>
         </div>
     </div>
 
@@ -349,7 +349,6 @@
 </div>
 
 <script>
-    // Single-word foods list
     const prefixes = ["Super", "Mega", "Cheesy", "Choco", "Crispy", "Sweet", "Spicy", "Garlic", "Honey", "Mini", "Giant", "Smokey", "Berry", "Butter", "Fruity", "Glazed", "Golden", "Truffle", "Toasted", "Salty", "Fresh", "Tangy", "Milky", "Nutty"];
     const baseFoods = ["burger", "pizza", "taco", "sushi", "apple", "donut", "pancake", "cookie", "noodle", "pasta", "waffle", "muffin", "steak", "pickle", "potato", "pretzel", "brownie", "maki", "bacon", "toast", "bagel", "nacho", "ramen", "cupcake", "tart", "bread", "cheese", "sandwich", "cherry", "mango", "berry", "melon", "biscuit", "crepe", "fondue", "kebab", "omelet", "paella", "pie", "salad"];
 
@@ -370,45 +369,30 @@
     let gameOver = false;
 
     function generateCode() {
-        return Math.random().toString(36).substring(2, 8).toUpperCase();
+        return Math.random().toString(36).substring(2, 6).toUpperCase();
     }
 
     function createGame() {
+        document.getElementById('create-btn').disabled = true;
         isCreator = true;
         const code = generateCode();
         
-        // Host creates a peer with the room code
         peer = new Peer("FOODGAME-" + code);
 
-        peer.on('open', (id) => {
+        peer.on('open', () => {
             document.getElementById('lobby-section').classList.add('hidden');
             document.getElementById('waiting-section').classList.remove('hidden');
             document.getElementById('code-display').innerText = code;
         });
 
-        // Wait for player 2 to connect
         peer.on('connection', (connection) => {
             conn = connection;
-            setupConnection();
-            
-            // Assign secret food
-            mySecretFood = foods[Math.floor(Math.random() * foods.length)];
-            document.getElementById('my-secret').innerText = mySecretFood;
-
-            // Send secret to Player 2
-            conn.send({ type: 'start', secret: mySecretFood });
-
-            document.getElementById('waiting-section').classList.add('hidden');
-            document.getElementById('game-section').classList.remove('hidden');
-            
-            isMyTurn = true;
-            updateTurnUI();
-            enableChat(true);
-            appendSystemMessage("Player 2 connected! Your turn.");
+            setupListeners();
         });
 
         peer.on('error', (err) => {
-            alert("Connection error: " + err.type);
+            alert("Error: Room code might be in use. Try again.");
+            location.reload();
         });
     }
 
@@ -416,22 +400,50 @@
         const code = document.getElementById('code-input').value.trim().toUpperCase();
         if (!code) return alert("Please enter a room code.");
 
+        document.getElementById('join-btn').disabled = true;
         isCreator = false;
         peer = new Peer();
 
         peer.on('open', () => {
-            conn = peer.connect("FOODGAME-" + code);
+            conn = peer.connect("FOODGAME-" + code, { reliable: true });
             
             conn.on('open', () => {
-                setupConnection();
-                
-                // Assign secret food for joiner
+                setupListeners();
                 mySecretFood = foods[Math.floor(Math.random() * foods.length)];
                 document.getElementById('my-secret').innerText = mySecretFood;
                 
-                // Send secret to Host
-                conn.send({ type: 'join-secret', secret: mySecretFood });
+                // Signal to host that joiner is connected
+                conn.send({ type: 'join-ready', secret: mySecretFood });
+            });
+        });
 
+        peer.on('error', (err) => {
+            alert("Could not connect to room! Check your code.");
+            document.getElementById('join-btn').disabled = false;
+        });
+    }
+
+    function setupListeners() {
+        conn.on('data', (data) => {
+            if (data.type === 'join-ready') {
+                // Host receives joiner secret and replies with host secret
+                opponentSecretFood = data.secret;
+                mySecretFood = foods[Math.floor(Math.random() * foods.length)];
+                document.getElementById('my-secret').innerText = mySecretFood;
+                
+                conn.send({ type: 'host-ready', secret: mySecretFood });
+
+                document.getElementById('waiting-section').classList.add('hidden');
+                document.getElementById('game-section').classList.remove('hidden');
+                
+                isMyTurn = true;
+                updateTurnUI();
+                enableChat(true);
+                appendSystemMessage("Player 2 connected! Your turn.");
+            } 
+            else if (data.type === 'host-ready') {
+                // Joiner receives host secret and starts game
+                opponentSecretFood = data.secret;
                 document.getElementById('lobby-section').classList.add('hidden');
                 document.getElementById('game-section').classList.remove('hidden');
                 
@@ -439,28 +451,16 @@
                 updateTurnUI();
                 enableChat(false);
                 appendSystemMessage("Connected to host! Host goes first.");
-            });
-        });
-
-        peer.on('error', (err) => {
-            alert("Room not found! Check the code.");
-        });
-    }
-
-    function setupConnection() {
-        conn.on('data', (data) => {
-            if (data.type === 'start') {
-                opponentSecretFood = data.secret;
-            } else if (data.type === 'join-secret') {
-                opponentSecretFood = data.secret;
-            } else if (data.type === 'chat') {
+            }
+            else if (data.type === 'chat') {
                 appendMessage(data.msg, 'peer');
                 if (!gameOver) {
                     isMyTurn = true;
                     updateTurnUI();
                     enableChat(true);
                 }
-            } else if (data.type === 'game-over') {
+            } 
+            else if (data.type === 'game-over') {
                 gameOver = true;
                 enableChat(false);
                 const indicator = document.getElementById('turn-indicator');
@@ -468,7 +468,8 @@
                 indicator.style.background = "var(--accent-red-bg)";
                 indicator.style.color = "#b91c1c";
                 document.getElementById('reset-btn').classList.remove('hidden');
-            } else if (data.type === 'reset') {
+            } 
+            else if (data.type === 'reset') {
                 location.reload();
             }
         });
@@ -492,7 +493,6 @@
         updateTurnUI();
         enableChat(false);
 
-        // Check for win
         if (opponentSecretFood && text.toLowerCase().includes(opponentSecretFood.toLowerCase())) {
             gameOver = true;
             conn.send({ type: 'game-over' });
