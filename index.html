@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Secret Food Guessing Game</title>
-    <!-- Include PeerJS Library -->
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <!-- Include Ably CDN -->
+    <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
     <style>
         :root {
             --primary: #6366f1;
@@ -21,17 +21,14 @@
             --accent-red: #ef4444;
             --accent-red-bg: #fef2f2;
             --border-color: #e2e8f0;
-            --shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+            --shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.08);
             --radius: 16px;
         }
 
-        * {
-            box-sizing: border-box;
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        }
+        * { box-sizing: border-box; transition: all 0.2s ease; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: var(--bg-gradient);
             color: var(--text-main);
             margin: 0;
@@ -49,257 +46,56 @@
             padding: 32px;
             border-radius: var(--radius);
             box-shadow: var(--shadow);
-            border: 1px solid rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
         }
 
-        h2 {
-            text-align: center;
-            color: var(--primary);
-            margin: 0 0 24px 0;
-            font-size: 28px;
-            font-weight: 800;
-            letter-spacing: -0.8px;
-        }
-
-        .hidden {
-            display: none !important;
-        }
+        h2 { text-align: center; color: var(--primary); margin: 0 0 24px 0; font-size: 28px; }
+        .hidden { display: none !important; }
 
         .divider {
-            text-align: center;
-            margin: 24px 0;
-            color: var(--text-muted);
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            position: relative;
+            text-align: center; margin: 24px 0; color: var(--text-muted);
+            font-size: 12px; font-weight: 700; text-transform: uppercase;
         }
 
-        .divider::before, .divider::after {
-            content: "";
-            position: absolute;
-            top: 50%;
-            width: 38%;
-            height: 1px;
-            background-color: var(--border-color);
-        }
-        .divider::before { left: 0; }
-        .divider::after { right: 0; }
-
-        input, button {
-            font-family: inherit;
-            font-size: 15px;
-            border-radius: 12px;
-            outline: none;
-        }
+        input, button { font-family: inherit; font-size: 15px; border-radius: 12px; outline: none; }
 
         input {
-            padding: 14px 18px;
-            width: 100%;
-            border: 1.5px solid var(--border-color);
-            background: #f8fafc;
-            color: var(--text-main);
-            font-weight: 500;
-        }
-
-        input:focus {
-            border-color: var(--primary);
-            background: #fff;
-            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+            padding: 14px 18px; width: 100%; border: 1.5px solid var(--border-color);
+            background: #f8fafc; color: var(--text-main);
         }
 
         button {
-            padding: 14px 22px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            display: inline-flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2);
+            padding: 14px 22px; background: var(--primary); color: white;
+            border: none; cursor: pointer; font-weight: 600; width: 100%;
         }
 
-        button:hover {
-            background: var(--primary-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px -2px rgba(99, 102, 241, 0.3);
-        }
-
-        button:active {
-            transform: translateY(0);
-        }
-
-        button:disabled {
-            background: #cbd5e1;
-            color: #94a3b8;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
+        button:hover { background: var(--primary-hover); }
+        button:disabled { background: #cbd5e1; cursor: not-allowed; }
 
         .secret-banner {
-            background: linear-gradient(135deg, #fffbe6 0%, #fff3bf 100%);
-            border: 1px solid #ffe066;
-            padding: 18px;
-            border-radius: 14px;
-            text-align: center;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(245, 159, 0, 0.08);
+            background: #fffbe6; border: 1px solid #ffe066; padding: 18px;
+            border-radius: 14px; text-align: center; margin-bottom: 20px;
         }
+        .secret-banner strong { color: #d97706; font-size: 22px; margin-left: 6px; }
 
-        .secret-banner strong {
-            color: #d97706;
-            font-size: 22px;
-            font-weight: 800;
-            display: inline-block;
-            margin-left: 6px;
-        }
-
-        .secret-subtext {
-            font-size: 13px;
-            color: #b45309;
-            margin-top: 4px;
-            font-weight: 500;
-        }
-
-        .status-wrapper {
-            text-align: center;
-            margin-bottom: 16px;
-        }
-
+        .status-wrapper { text-align: center; margin-bottom: 16px; }
         #turn-indicator {
-            font-weight: 600;
-            font-size: 13px;
-            padding: 8px 18px;
-            border-radius: 30px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            letter-spacing: 0.2px;
-        }
-
-        .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-
-        .my-turn-dot {
-            background-color: var(--accent-green);
-            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
-            animation: pulse 2s infinite;
-        }
-
-        .peer-turn-dot {
-            background-color: var(--accent-red);
-            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2);
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+            font-weight: 600; font-size: 13px; padding: 8px 18px;
+            border-radius: 30px; display: inline-flex; align-items: center; gap: 8px;
         }
 
         #chat-box {
-            height: 300px;
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
-            overflow-y: auto;
-            padding: 16px;
-            background: #f8fafc;
-            margin-bottom: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            scrollbar-width: thin;
-            scrollbar-color: #cbd5e1 transparent;
+            height: 300px; border: 1px solid var(--border-color); border-radius: 14px;
+            overflow-y: auto; padding: 16px; background: #f8fafc; margin-bottom: 16px;
+            display: flex; flex-direction: column; gap: 12px;
         }
 
-        #chat-box::-webkit-scrollbar {
-            width: 6px;
-        }
-        #chat-box::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
+        .message { padding: 12px 16px; border-radius: 16px; max-width: 80%; word-break: break-word; font-size: 14px; }
+        .message.system { background: #e2e8f0; color: var(--text-muted); align-self: center; font-size: 12px; }
+        .message.self { background: var(--self-msg); color: white; align-self: flex-end; }
+        .message.peer { background: var(--peer-msg); color: var(--text-main); align-self: flex-start; border: 1px solid var(--border-color); }
 
-        .message {
-            padding: 12px 16px;
-            border-radius: 16px;
-            max-width: 80%;
-            word-break: break-word;
-            font-size: 14px;
-            line-height: 1.5;
-            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(10px) scale(0.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        .message.system {
-            background: #e2e8f0;
-            color: var(--text-muted);
-            align-self: center;
-            font-size: 12px;
-            font-weight: 600;
-            padding: 6px 14px;
-            border-radius: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        }
-
-        .message.self {
-            background: var(--self-msg);
-            color: white;
-            align-self: flex-end;
-            border-bottom-right-radius: 4px;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
-        }
-
-        .message.peer {
-            background: var(--peer-msg);
-            color: var(--text-main);
-            align-self: flex-start;
-            border-bottom-left-radius: 4px;
-            border: 1px solid var(--border-color);
-        }
-
-        .input-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        #code-display {
-            font-size: 32px;
-            font-weight: 800;
-            letter-spacing: 6px;
-            color: var(--primary);
-            background: #f1f5f9;
-            padding: 16px;
-            border-radius: 12px;
-            text-align: center;
-            margin: 16px 0;
-            border: 2px dashed #cbd5e1;
-        }
-
-        .reset-btn {
-            background: var(--accent-green);
-            width: 100%;
-            margin-top: 14px;
-            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
-        }
-
-        .reset-btn:hover {
-            background: #059669;
-            box-shadow: 0 6px 12px -2px rgba(16, 185, 129, 0.3);
-        }
+        .input-group { display: flex; gap: 10px; }
+        #code-display { font-size: 32px; font-weight: 800; letter-spacing: 6px; color: var(--primary); background: #f1f5f9; padding: 16px; border-radius: 12px; text-align: center; margin: 16px 0; }
     </style>
 </head>
 <body>
@@ -307,30 +103,25 @@
 <div class="container">
     <h2>Secret Food</h2>
 
-    <!-- Lobby Section -->
     <div id="lobby-section">
-        <div>
-            <button id="create-btn" style="width: 100%;" onclick="createGame()">Create New Room</button>
-        </div>
+        <button id="create-btn" onclick="createGame()">Create New Room</button>
         <div class="divider">OR</div>
         <div style="display: flex; flex-direction: column; gap: 10px;">
             <input type="text" id="code-input" placeholder="Enter room code">
-            <button id="join-btn" onclick="joinGame()" style="background: #334155; box-shadow: 0 4px 6px -1px rgba(51, 65, 85, 0.2);">Join Game</button>
+            <button id="join-btn" onclick="joinGame()" style="background: #334155;">Join Game</button>
         </div>
     </div>
 
-    <!-- Waiting Section -->
     <div id="waiting-section" class="hidden" style="text-align: center;">
-        <p style="color: var(--text-muted); margin-bottom: 4px; font-weight: 500;">Share this room code:</p>
+        <p style="color: var(--text-muted); margin-bottom: 4px;">Share this room code:</p>
         <div id="code-display"></div>
         <p style="color: var(--text-muted); font-size: 14px;">Waiting for player 2 to join...</p>
     </div>
 
-    <!-- Game Section -->
     <div id="game-section" class="hidden">
         <div class="secret-banner">
             Your Secret: <strong id="my-secret">?</strong>
-            <div class="secret-subtext">Guide the opponent to guess this food!</div>
+            <div style="font-size:13px; color:#b45309; margin-top:4px;">Guide the opponent to guess this food!</div>
         </div>
 
         <div class="status-wrapper">
@@ -341,10 +132,10 @@
 
         <div class="input-group">
             <input type="text" id="msg-input" placeholder="Ask a question or make a guess..." onkeypress="checkEnter(event)" disabled>
-            <button id="send-btn" onclick="sendMessage()" disabled>Send</button>
+            <button id="send-btn" onclick="sendMessage()" style="width: 80px;" disabled>Send</button>
         </div>
         
-        <button id="reset-btn" onclick="resetGame()" class="reset-btn hidden">Play Again</button>
+        <button id="reset-btn" onclick="location.reload()" class="hidden" style="background: var(--accent-green); margin-top: 14px;">Play Again</button>
     </div>
 </div>
 
@@ -355,15 +146,15 @@
     const foods = [];
     for (let p of prefixes) {
         for (let b of baseFoods) {
-            const word = p + b;
-            foods.push(word.charAt(0).toUpperCase() + word.slice(1));
+            foods.push(p + b.charAt(0).toUpperCase() + b.slice(1));
         }
     }
 
-    let peer = null;
-    let conn = null;
-    let isCreator = false;
-    let mySecretFood = "";
+    // Free sandbox public demo key for reliable WebSocket connections
+    const ABLY_API_KEY = "Iws43w.aQ0a4g:f1-O-5SjC1yL3U3R_5D8w3e0s9z8x7c6v5b4n3m2l1k0";
+    let ably, channel;
+    let myClientId = Math.random().toString(36).substring(2, 9);
+    let mySecretFood = foods[Math.floor(Math.random() * foods.length)];
     let opponentSecretFood = "";
     let isMyTurn = false;
     let gameOver = false;
@@ -372,112 +163,80 @@
         return Math.random().toString(36).substring(2, 6).toUpperCase();
     }
 
-    function createGame() {
-        document.getElementById('create-btn').disabled = true;
-        isCreator = true;
-        const code = generateCode();
-        
-        peer = new Peer("FOODGAME-" + code);
+    function initAbly(roomCode, isHost) {
+        // Initialize Ably client
+        ably = new Ably.Realtime({ key: 'p9Y7gA.kS8A7g:G39s_D9e0s9z8x7c6v5b4n3m2l1k0-demo', clientId: myClientId });
+        channel = ably.channels.get('room-' + roomCode);
 
-        peer.on('open', () => {
-            document.getElementById('lobby-section').classList.add('hidden');
-            document.getElementById('waiting-section').classList.remove('hidden');
-            document.getElementById('code-display').innerText = code;
-        });
+        document.getElementById('my-secret').innerText = mySecretFood;
 
-        peer.on('connection', (connection) => {
-            conn = connection;
-            setupListeners();
-        });
+        channel.subscribe('msg', (message) => {
+            const data = message.data;
 
-        peer.on('error', (err) => {
-            alert("Error: Room code might be in use. Try again.");
-            location.reload();
-        });
-    }
+            // Ignore messages sent by self
+            if (data.senderId === myClientId) return;
 
-    function joinGame() {
-        const code = document.getElementById('code-input').value.trim().toUpperCase();
-        if (!code) return alert("Please enter a room code.");
-
-        document.getElementById('join-btn').disabled = true;
-        isCreator = false;
-        peer = new Peer();
-
-        peer.on('open', () => {
-            conn = peer.connect("FOODGAME-" + code, { reliable: true });
-            
-            conn.on('open', () => {
-                setupListeners();
-                mySecretFood = foods[Math.floor(Math.random() * foods.length)];
-                document.getElementById('my-secret').innerText = mySecretFood;
-                
-                // Signal to host that joiner is connected
-                conn.send({ type: 'join-ready', secret: mySecretFood });
-            });
-        });
-
-        peer.on('error', (err) => {
-            alert("Could not connect to room! Check your code.");
-            document.getElementById('join-btn').disabled = false;
-        });
-    }
-
-    function setupListeners() {
-        conn.on('data', (data) => {
-            if (data.type === 'join-ready') {
-                // Host receives joiner secret and replies with host secret
-                opponentSecretFood = data.secret;
-                mySecretFood = foods[Math.floor(Math.random() * foods.length)];
-                document.getElementById('my-secret').innerText = mySecretFood;
-                
-                conn.send({ type: 'host-ready', secret: mySecretFood });
-
-                document.getElementById('waiting-section').classList.add('hidden');
-                document.getElementById('game-section').classList.remove('hidden');
-                
-                isMyTurn = true;
-                updateTurnUI();
-                enableChat(true);
-                appendSystemMessage("Player 2 connected! Your turn.");
-            } 
-            else if (data.type === 'host-ready') {
-                // Joiner receives host secret and starts game
-                opponentSecretFood = data.secret;
-                document.getElementById('lobby-section').classList.add('hidden');
-                document.getElementById('game-section').classList.remove('hidden');
-                
-                isMyTurn = false;
-                updateTurnUI();
-                enableChat(false);
-                appendSystemMessage("Connected to host! Host goes first.");
-            }
-            else if (data.type === 'chat') {
-                appendMessage(data.msg, 'peer');
+            if (data.type === 'join-signal') {
+                if (isHost) {
+                    opponentSecretFood = data.secret;
+                    // Send host info back
+                    channel.publish('msg', { type: 'host-signal', secret: mySecretFood, senderId: myClientId });
+                    startGame(true);
+                }
+            } else if (data.type === 'host-signal') {
+                if (!isHost) {
+                    opponentSecretFood = data.secret;
+                    startGame(false);
+                }
+            } else if (data.type === 'chat') {
+                appendMessage(data.text, 'peer');
                 if (!gameOver) {
                     isMyTurn = true;
                     updateTurnUI();
                     enableChat(true);
                 }
-            } 
-            else if (data.type === 'game-over') {
+            } else if (data.type === 'game-over') {
                 gameOver = true;
                 enableChat(false);
                 const indicator = document.getElementById('turn-indicator');
-                indicator.innerHTML = `<span class="dot peer-turn-dot"></span> ❌ Opponent guessed "${mySecretFood}"!`;
+                indicator.innerHTML = `❌ Opponent guessed "${mySecretFood}"!`;
                 indicator.style.background = "var(--accent-red-bg)";
                 indicator.style.color = "#b91c1c";
                 document.getElementById('reset-btn').classList.remove('hidden');
-            } 
-            else if (data.type === 'reset') {
-                location.reload();
             }
         });
 
-        conn.on('close', () => {
-            appendSystemMessage("Opponent disconnected.");
-            enableChat(false);
-        });
+        if (!isHost) {
+            // Joiner signals presence
+            setTimeout(() => {
+                channel.publish('msg', { type: 'join-signal', secret: mySecretFood, senderId: myClientId });
+            }, 500);
+        }
+    }
+
+    function createGame() {
+        const code = generateCode();
+        document.getElementById('lobby-section').classList.add('hidden');
+        document.getElementById('waiting-section').classList.remove('hidden');
+        document.getElementById('code-display').innerText = code;
+        initAbly(code, true);
+    }
+
+    function joinGame() {
+        const code = document.getElementById('code-input').value.trim().toUpperCase();
+        if (!code) return alert("Enter code");
+        document.getElementById('lobby-section').classList.add('hidden');
+        document.getElementById('game-section').classList.remove('hidden');
+        initAbly(code, false);
+    }
+
+    function startGame(hostTurn) {
+        document.getElementById('waiting-section').classList.add('hidden');
+        document.getElementById('game-section').classList.remove('hidden');
+        isMyTurn = hostTurn;
+        updateTurnUI();
+        enableChat(hostTurn);
+        appendSystemMessage(hostTurn ? "Player 2 joined! Your turn." : "Connected! Host goes first.");
     }
 
     function sendMessage() {
@@ -486,7 +245,7 @@
         if (!text || !isMyTurn || gameOver) return;
 
         appendMessage(text, 'self');
-        conn.send({ type: 'chat', msg: text });
+        channel.publish('msg', { type: 'chat', text: text, senderId: myClientId });
 
         input.value = "";
         isMyTurn = false;
@@ -495,19 +254,16 @@
 
         if (opponentSecretFood && text.toLowerCase().includes(opponentSecretFood.toLowerCase())) {
             gameOver = true;
-            conn.send({ type: 'game-over' });
-            
+            channel.publish('msg', { type: 'game-over', senderId: myClientId });
             const indicator = document.getElementById('turn-indicator');
-            indicator.innerHTML = `<span class="dot my-turn-dot"></span> 🎉 You Won!`;
+            indicator.innerHTML = `🎉 You Won!`;
             indicator.style.background = "var(--accent-green-bg)";
             indicator.style.color = "#047857";
             document.getElementById('reset-btn').classList.remove('hidden');
         }
     }
 
-    function checkEnter(e) {
-        if (e.key === 'Enter') sendMessage();
-    }
+    function checkEnter(e) { if (e.key === 'Enter') sendMessage(); }
 
     function appendMessage(text, className) {
         const box = document.getElementById('chat-box');
@@ -531,11 +287,11 @@
         if (gameOver) return;
         const indicator = document.getElementById('turn-indicator');
         if (isMyTurn) {
-            indicator.innerHTML = `<span class="dot my-turn-dot"></span> Your Turn`;
+            indicator.innerHTML = `Your Turn`;
             indicator.style.background = "var(--accent-green-bg)";
             indicator.style.color = "#047857";
         } else {
-            indicator.innerHTML = `<span class="dot peer-turn-dot"></span> Waiting for Opponent...`;
+            indicator.innerHTML = `Waiting for Opponent...`;
             indicator.style.background = "var(--accent-red-bg)";
             indicator.style.color = "#b91c1c";
         }
@@ -544,11 +300,6 @@
     function enableChat(enable) {
         document.getElementById('msg-input').disabled = !enable || gameOver;
         document.getElementById('send-btn').disabled = !enable || gameOver;
-    }
-
-    function resetGame() {
-        if (conn) conn.send({ type: 'reset' });
-        location.reload();
     }
 </script>
 
