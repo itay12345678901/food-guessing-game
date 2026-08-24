@@ -4,31 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>משחק ניחוש אוכל סודי</title>
-    <!-- Include Socket.io Client -->
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.8.0/dist/socket.io.min.js"></script>
+    
     <style>
         :root {
-            --primary: #6366f1;
-            --primary-hover: #4f46e5;
-            --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --primary-light: #e0e7ff;
+            --bg-gradient: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
             --card-bg: #ffffff;
             --text-main: #0f172a;
             --text-muted: #64748b;
             --self-msg: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-            --peer-msg: #f1f5f9;
+            --peer-msg: #ffffff;
             --accent-green: #10b981;
             --accent-green-bg: #ecfdf5;
             --accent-red: #ef4444;
             --accent-red-bg: #fef2f2;
-            --border-color: #e2e8f0;
-            --shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.08);
-            --radius: 16px;
+            --border-color: #f1f5f9;
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            --radius-lg: 24px;
+            --radius-md: 16px;
         }
 
-        * { box-sizing: border-box; transition: all 0.2s ease; }
+        * {
+            box-sizing: border-box;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: 'Rubik', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: var(--bg-gradient);
             color: var(--text-main);
             margin: 0;
@@ -37,65 +48,209 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
         }
 
         .container {
-            max-width: 480px;
+            max-width: 460px;
             width: 100%;
             background: var(--card-bg);
-            padding: 32px;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
+            padding: 32px 28px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
         }
 
-        h2 { text-align: center; color: var(--primary); margin: 0 0 24px 0; font-size: 28px; }
+        h2 {
+            text-align: center;
+            color: var(--primary);
+            margin: 0 0 24px 0;
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
         .hidden { display: none !important; }
 
         .divider {
-            text-align: center; margin: 24px 0; color: var(--text-muted);
-            font-size: 12px; font-weight: 700; text-transform: uppercase;
+            text-align: center;
+            margin: 20px 0;
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        input, button { font-family: inherit; font-size: 15px; border-radius: 12px; outline: none; }
+        input, button {
+            font-family: 'Rubik', sans-serif;
+            font-size: 16px;
+            border-radius: var(--radius-md);
+            outline: none;
+        }
 
         input {
-            padding: 14px 18px; width: 100%; border: 1.5px solid var(--border-color);
-            background: #f8fafc; color: var(--text-main); text-align: right;
+            padding: 16px 20px;
+            width: 100%;
+            border: 2px solid #e2e8f0;
+            background: #f8fafc;
+            color: var(--text-main);
+            text-align: right;
+            font-weight: 500;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            background: #ffffff;
+            box-shadow: 0 0 0 4px var(--primary-light);
         }
 
         button {
-            padding: 14px 22px; background: var(--primary); color: white;
-            border: none; cursor: pointer; font-weight: 600; width: 100%;
+            padding: 16px 24px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            width: 100%;
+            box-shadow: var(--shadow-md);
         }
 
-        button:hover { background: var(--primary-hover); }
-        button:disabled { background: #cbd5e1; cursor: not-allowed; }
+        button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
 
         .secret-banner {
-            background: #fffbe6; border: 1px solid #ffe066; padding: 18px;
-            border-radius: 14px; text-align: center; margin-bottom: 20px;
+            background: #fffbe6;
+            border: 1.5px solid #ffe066;
+            padding: 18px;
+            border-radius: var(--radius-md);
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-md);
         }
-        .secret-banner strong { color: #d97706; font-size: 22px; margin-right: 6px; }
 
-        .status-wrapper { text-align: center; margin-bottom: 16px; }
+        .secret-banner strong {
+            color: #d97706;
+            font-size: 24px;
+            font-weight: 800;
+            margin-right: 6px;
+        }
+
+        .status-wrapper {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
         #turn-indicator {
-            font-weight: 600; font-size: 13px; padding: 8px 18px;
-            border-radius: 30px; display: inline-flex; align-items: center; gap: 8px;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 10px 22px;
+            border-radius: 30px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: var(--shadow-md);
         }
 
         #chat-box {
-            height: 300px; border: 1px solid var(--border-color); border-radius: 14px;
-            overflow-y: auto; padding: 16px; background: #f8fafc; margin-bottom: 16px;
-            display: flex; flex-direction: column; gap: 12px; text-align: right;
+            height: 320px;
+            border: 1.5px solid #f1f5f9;
+            border-radius: var(--radius-md);
+            overflow-y: auto;
+            padding: 18px;
+            background: #f8fafc;
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            text-align: right;
+            scroll-behavior: smooth;
         }
 
-        .message { padding: 12px 16px; border-radius: 16px; max-width: 80%; word-break: break-word; font-size: 14px; }
-        .message.system { background: #e2e8f0; color: var(--text-muted); align-self: center; font-size: 12px; text-align: center; }
-        .message.self { background: var(--self-msg); color: white; align-self: flex-start; }
-        .message.peer { background: var(--peer-msg); color: var(--text-main); align-self: flex-end; border: 1px solid var(--border-color); }
+        /* Pop-up animation for new chat messages */
+        .message {
+            padding: 12px 18px;
+            border-radius: 18px;
+            max-width: 82%;
+            word-break: break-word;
+            font-size: 15px;
+            font-weight: 500;
+            line-height: 1.4;
+            animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            transform-origin: center bottom;
+            box-shadow: var(--shadow-md);
+        }
 
-        .input-group { display: flex; gap: 10px; }
-        #code-display { font-size: 32px; font-weight: 800; letter-spacing: 6px; color: var(--primary); background: #f1f5f9; padding: 16px; border-radius: 12px; text-align: center; margin: 16px 0; direction: ltr; }
+        @keyframes popIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.7) translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .message.system {
+            background: #e2e8f0;
+            color: var(--text-muted);
+            align-self: center;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+            border-radius: 20px;
+            padding: 6px 16px;
+            box-shadow: none;
+        }
+
+        .message.self {
+            background: var(--self-msg);
+            color: white;
+            align-self: flex-start;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.peer {
+            background: var(--peer-msg);
+            color: var(--text-main);
+            align-self: flex-end;
+            border: 1px solid #e2e8f0;
+            border-bottom-left-radius: 4px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        #code-display {
+            font-size: 36px;
+            font-weight: 900;
+            letter-spacing: 8px;
+            color: var(--primary);
+            background: #f1f5f9;
+            padding: 18px;
+            border-radius: var(--radius-md);
+            text-align: center;
+            margin: 16px 0;
+            direction: ltr;
+        }
     </style>
 </head>
 <body>
@@ -106,22 +261,22 @@
     <div id="lobby-section">
         <button id="create-btn" onclick="createGame()">צור חדר חדש</button>
         <div class="divider">או</div>
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            <input type="text" id="code-input" placeholder="הכנס קוד חדר" style="text-align: center;">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <input type="text" id="code-input" placeholder="הכנס קוד חדר" style="text-align: center; direction: ltr;">
             <button id="join-btn" onclick="joinGame()" style="background: #334155;">הצטרף למשחק</button>
         </div>
     </div>
 
     <div id="waiting-section" class="hidden" style="text-align: center;">
-        <p style="color: var(--text-muted); margin-bottom: 4px;">שתף את קוד החדר הזה:</p>
+        <p style="color: var(--text-muted); margin-bottom: 4px; font-weight: 600;">שתף את קוד החדר הזה:</p>
         <div id="code-display"></div>
-        <p style="color: var(--text-muted); font-size: 14px;">ממתין לשחקן השני שיצטרף...</p>
+        <p style="color: var(--text-muted); font-size: 14px; font-weight: 500;">ממתין לשחקן השני שיצטרף...</p>
     </div>
 
     <div id="game-section" class="hidden">
         <div class="secret-banner">
             האוכל הסודי שלך: <strong id="my-secret">?</strong>
-            <div style="font-size:13px; color:#b45309; margin-top:4px;">עזור ליריב לנחש את המאכל הזה!</div>
+            <div style="font-size:13px; color:#b45309; margin-top:4px; font-weight: 600;">עזור ליריב לנחש את המאכל הזה!</div>
         </div>
 
         <div class="status-wrapper">
@@ -131,7 +286,7 @@
         <div id="chat-box"></div>
 
         <div class="input-group">
-            <button id="send-btn" onclick="sendMessage()" style="width: 80px;">שלח</button>
+            <button id="send-btn" onclick="sendMessage()" style="width: 85px;">שלח</button>
             <input type="text" id="msg-input" placeholder="שאל שאלה או נחש מאכל..." onkeypress="checkEnter(event)" disabled>
         </div>
         
@@ -140,6 +295,49 @@
 </div>
 
 <script>
+    // Audio Context Setup for Sound Effects
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'send') {
+            // High crisp send pop
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(520, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        } else if (type === 'receive') {
+            // Gentle double pop
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(660, audioCtx.currentTime + 0.12);
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.12);
+        } else if (type === 'win') {
+            // Victory chime
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
+            osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.4);
+        }
+    }
+
     const foods = [
         "פלאפל", "חומוס", "שווארמה", "שקשוקה", "בורקס", "טחינה", "קבב", "פרגית", "שניצל", "פתיתים", 
         "סופגנייה", "אוזן המן", "חלה", "פיתה", "לאפה", "בייגל", "מטבוחה", "כרובית מטוגנת", "מרק עוף", "רוגלך", 
@@ -196,10 +394,12 @@
         updateTurnUI();
         enableChat(isHost);
         appendSystemMessage(isHost ? "שחקן 2 הצטרף! התור שלך." : "התחברת! המארח מתחיל ראשון.");
+        playSound('receive');
     });
 
     socket.on("receive-message", ({ text }) => {
         appendMessage(text, 'peer');
+        playSound('receive');
         if (!gameOver) {
             isMyTurn = true;
             updateTurnUI();
@@ -227,6 +427,7 @@
         if (!text || !isMyTurn || gameOver) return;
 
         appendMessage(text, 'self');
+        playSound('send');
         socket.emit("send-message", { roomCode: currentRoomCode, text });
 
         input.value = "";
@@ -236,6 +437,7 @@
 
         if (opponentSecretFood && text.toLowerCase().includes(opponentSecretFood.toLowerCase())) {
             gameOver = true;
+            playSound('win');
             socket.emit("game-over", { roomCode: currentRoomCode, text });
             const indicator = document.getElementById('turn-indicator');
             indicator.innerHTML = `🎉 ניצחת!`;
@@ -287,4 +489,3 @@
 
 </body>
 </html>
-
